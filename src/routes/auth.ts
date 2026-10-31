@@ -5,10 +5,8 @@ import { User, PublicUser } from '../types';
 
 const router = Router();
 
-// In-memory user store (replace with a real database in production)
 const users: User[] = [];
 
-// Seed a default admin user (password: admin123)
 (async () => {
   const hash = await bcrypt.hash('admin123', 10);
   users.push({
@@ -16,23 +14,30 @@ const users: User[] = [];
     username: 'admin',
     email: 'admin@example.com',
     passwordHash: hash,
+    fullName: 'Administrador',
+    phone: '',
+    bio: 'Conta administrativa padrão.',
+    avatarUrl: '',
     createdAt: new Date(),
   });
 })();
 
 function toPublicUser(user: User): PublicUser {
-  return { id: user.id, username: user.username, email: user.email };
+  return {
+    id: user.id,
+    username: user.username,
+    email: user.email,
+    fullName: user.fullName || '',
+    phone: user.phone || '',
+    bio: user.bio || '',
+    avatarUrl: user.avatarUrl || '',
+  };
 }
 
-// ---- Login rate limiting (3 attempts then lockout) ----
-interface AttemptInfo {
-  count: number;
-  lockedUntil: number;
-}
-
+interface AttemptInfo { count: number; lockedUntil: number; }
 const loginAttempts = new Map<string, AttemptInfo>();
 const MAX_ATTEMPTS = 3;
-const LOCKOUT_MS = 60 * 1000; // 1 minute
+const LOCKOUT_MS = 60 * 1000;
 
 function getClientKey(req: Request): string {
   return req.ip || req.socket.remoteAddress || 'unknown';
@@ -43,14 +48,12 @@ function getAttempt(key: string): AttemptInfo {
   const existing = loginAttempts.get(key);
   if (!existing) return { count: 0, lockedUntil: 0 };
   if (existing.lockedUntil > 0 && existing.lockedUntil <= now) {
-    // lockout expired -> reset
     loginAttempts.delete(key);
     return { count: 0, lockedUntil: 0 };
   }
   return existing;
 }
 
-// POST /api/login
 router.post('/login', async (req: Request, res: Response) => {
   try {
     const key = getClientKey(req);
@@ -71,9 +74,7 @@ router.post('/login', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'Usuário e senha são obrigatórios' });
     }
 
-    const user = users.find(
-      (u) => u.username === username || u.email === username
-    );
+    const user = users.find((u) => u.username === username || u.email === username);
 
     let passwordMatch = false;
     if (user) {
@@ -81,7 +82,6 @@ router.post('/login', async (req: Request, res: Response) => {
     }
 
     if (!user || !passwordMatch) {
-      // register failed attempt
       const current = getAttempt(key);
       const newCount = current.count + 1;
       if (newCount >= MAX_ATTEMPTS) {
@@ -99,14 +99,9 @@ router.post('/login', async (req: Request, res: Response) => {
       });
     }
 
-    // success -> reset attempts
     loginAttempts.delete(key);
 
-    req.session.user = {
-      id: user.id,
-      username: user.username,
-      email: user.email,
-    };
+    req.session.user = { id: user.id, username: user.username, email: user.email };
 
     return res.status(200).json({
       message: 'Login realizado com sucesso',
@@ -117,7 +112,6 @@ router.post('/login', async (req: Request, res: Response) => {
     return res.status(500).json({ message: 'Erro interno do servidor' });
   }
 });
-
 // POST /api/register
 router.post('/register', async (req: Request, res: Response) => {
   try {
@@ -135,9 +129,7 @@ router.post('/register', async (req: Request, res: Response) => {
       return res.status(400).json({ message: 'A senha deve ter pelo menos 6 caracteres' });
     }
 
-    const exists = users.some(
-      (u) => u.username === username || u.email === email
-    );
+    const exists = users.some((u) => u.username === username || u.email === email);
     if (exists) {
       return res.status(409).json({ message: 'Usuário ou e-mail já cadastrado' });
     }
@@ -148,15 +140,15 @@ router.post('/register', async (req: Request, res: Response) => {
       username,
       email,
       passwordHash,
+      fullName: username,
+      phone: '',
+      bio: '',
+      avatarUrl: '',
       createdAt: new Date(),
     };
     users.push(newUser);
 
-    req.session.user = {
-      id: newUser.id,
-      username: newUser.username,
-      email: newUser.email,
-    };
+    req.session.user = { id: newUser.id, username: newUser.username, email: newUser.email };
 
     return res.status(201).json({
       message: 'Conta criada com sucesso',
@@ -183,9 +175,64 @@ router.post('/logout', (req: Request, res: Response) => {
 // GET /api/me
 router.get('/me', (req: Request, res: Response) => {
   if (req.session.user) {
+    const user = users.find((u) => u.id === req.session.user!.id);
+    if (user) return res.status(200).json({ user: toPublicUser(user) });
     return res.status(200).json({ user: req.session.user });
   }
   return res.status(401).json({ message: 'Não autenticado' });
 });
 
+// GET /api/profile
+router.get('/profile', (req: Request, res: Response) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: 'Não autenticado' });
+  }
+  const user = users.find((u) => u.id === req.session.user!.id);
+  if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+  return res.status(200).json({ user: toPublicUser(user) });
+});
+
+// PUT /api/profile
+router.put('/profile', async (req: Request, res: Response) => {
+  if (!req.session.user) {
+    return res.status(401).json({ message: 'Não autenticado' });
+  }
+  const user = users.find((u) => u.id === req.session.user!.id);
+  if (!user) return res.status(404).json({ message: 'Usuário não encontrado' });
+
+  const { fullName, phone, bio, avatarUrl, email, password } = req.body as {
+    fullName?: string;
+    phone?: string;
+    bio?: string;
+    avatarUrl?: string;
+    email?: string;
+    password?: string;
+  };
+
+  if (fullName !== undefined) user.fullName = fullName;
+  if (phone !== undefined) user.phone = phone;
+  if (bio !== undefined) user.bio = bio;
+  if (avatarUrl !== undefined) user.avatarUrl = avatarUrl;
+
+  if (email && email !== user.email) {
+    const emailTaken = users.some((u) => u.id !== user.id && u.email === email);
+    if (emailTaken) return res.status(409).json({ message: 'E-mail já em uso' });
+    user.email = email;
+    req.session.user.email = email;
+  }
+
+  if (password) {
+    if (password.length < 6) {
+      return res.status(400).json({ message: 'A senha deve ter pelo menos 6 caracteres' });
+    }
+    user.passwordHash = await bcrypt.hash(password, 10);
+  }
+
+  return res.status(200).json({
+    message: 'Perfil atualizado com sucesso',
+    user: toPublicUser(user),
+  });
+});
+
 export default router;
+

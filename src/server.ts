@@ -29,12 +29,16 @@ app.use(
   })
 );
 
-// Auth routes (login, register, logout)
+// Auth routes (login, register, logout, profile)
 app.use('/api', authRoutes);
 
-// Protected dashboard route
+// Protected routes
 app.get('/dashboard', requireAuth, (_req: Request, res: Response) => {
   res.sendFile(path.join(__dirname, '..', 'views', 'dashboard.html'));
+});
+
+app.get('/profile', requireAuth, (_req: Request, res: Response) => {
+  res.sendFile(path.join(__dirname, '..', 'views', 'profile.html'));
 });
 
 // Root -> login page

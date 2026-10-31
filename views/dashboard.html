@@ -3,15 +3,27 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Dashboard</title>
+  <title>Oreia app — Dashboard</title>
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
   <div class="container">
     <div class="card">
+      <div class="brand">
+        <div class="brand-logo">O</div>
+        <div class="brand-name">Oreia app</div>
+      </div>
+      <div class="brand-tagline">Painel do usuário</div>
+
       <h1>Dashboard</h1>
       <p class="subtitle">Você está autenticado!</p>
+
       <div id="userInfo" class="user-info">Carregando...</div>
+
+      <div class="nav-links">
+        <a href="/profile">Meu perfil</a>
+      </div>
+
       <button id="logoutBtn">Sair</button>
     </div>
   </div>
@@ -20,10 +32,11 @@
       const res = await fetch('/api/me');
       if (!res.ok) { window.location.href = '/'; return; }
       const data = await res.json();
+      const u = data.user;
       document.getElementById('userInfo').innerHTML =
-        `<p><strong>Usuário:</strong> ${data.user.username}</p>
-         <p><strong>E-mail:</strong> ${data.user.email}</p>
-         <p><strong>ID:</strong> ${data.user.id}</p>`;
+        `<p><strong>Usuário:</strong> ${u.username}</p>
+         <p><strong>E-mail:</strong> ${u.email}</p>
+         <p><strong>Nome:</strong> ${u.fullName || '-'}</p>`;
     })();
 
     document.getElementById('logoutBtn').addEventListener('click', async () => {

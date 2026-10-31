@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Oreia app — Perfil</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="brand">
+        <div class="brand-logo">O</div>
+        <div class="brand-name">Oreia app</div>
+      </div>
+      <div class="brand-tagline">Meu perfil</div>
+
+      <div class="profile-header">
+        <div class="avatar" id="avatarPreview">O</div>
+        <div>
+          <h1 id="profileName">Carregando...</h1>
+          <p class="subtitle" id="profileEmail"></p>
+        </div>
+      </div>
+
+      <div id="message" class="message" hidden></div>
+
+      <form id="profileForm">
+        <div class="field">
+          <label for="fullName">Nome completo</label>
+          <input type="text" id="fullName" name="fullName" />
+        </div>
+        <div class="field">
+          <label for="email">E-mail</label>
+          <input type="email" id="email" name="email" />
+        </div>
+        <div class="field">
+          <label for="phone">Telefone</label>
+          <input type="tel" id="phone" name="phone" />
+        </div>
+        <div class="field">
+          <label for="bio">Bio</label>
+          <textarea id="bio" name="bio" placeholder="Conte um pouco sobre você..."></textarea>
+        </div>
+        <div class="field">
+          <label for="avatarUrl">URL do avatar (imagem)</label>
+          <input type="url" id="avatarUrl" name="avatarUrl" placeholder="https://..." />
+        </div>
+        <div class="field">
+          <label for="password">Nova senha (deixe em branco para manter)</label>
+          <input type="password" id="password" name="password" minlength="6" />
+        </div>
+        <button type="submit" id="saveBtn">Salvar alterações</button>
+      </form>
+
+      <div class="nav-links">
+        <a href="/dashboard">Voltar ao dashboard</a>
+      </div>
+
+      <button id="logoutBtn" class="btn-secondary" style="margin-top:12px;">Sair</button>
+    </div>
+  </div>
+
+  <script src="/js/profile.js"></script>
+</body>
+</html>
